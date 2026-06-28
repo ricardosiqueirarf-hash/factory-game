@@ -1,7 +1,9 @@
-import { GameStateData, Inventory, ItemType, MachineState, MachineType } from '../types';
+import { ExpenseCategory, ExpenseLedger, FinanceLedger, GameStateData, Inventory, ItemType, MachineState, MachineType } from '../types';
 import { ITEM_ORDER, MACHINE_CATALOG, MACHINE_ORDER } from '../data/catalog';
 
 const STORAGE_KEY = 'factory-game-save-v1';
+const EXPENSE_CATEGORIES: ExpenseCategory[] = ['materials', 'capex', 'upgrades', 'labor', 'energy', 'maintenance', 'rent', 'taxes', 'other'];
+const BANKRUPTCY_LIMIT = -1000;
 
 function createEmptyInventory(): Inventory {
   return {
@@ -9,6 +11,45 @@ function createEmptyInventory(): Inventory {
     metal_plate: 0,
     gear: 0,
     toolkit: 0
+  };
+}
+
+function createEmptyExpenses(): ExpenseLedger {
+  return {
+    materials: 0,
+    capex: 0,
+    upgrades: 0,
+    labor: 0,
+    energy: 0,
+    maintenance: 0,
+    rent: 0,
+    taxes: 0,
+    other: 0
+  };
+}
+
+function createFreshFinance(): FinanceLedger {
+  return {
+    day: 1,
+    elapsedSeconds: 0,
+    revenue: 0,
+    expenses: createEmptyExpenses(),
+    bankrupt: false
+  };
+}
+
+function normalizeFinance(finance?: Partial<FinanceLedger>): FinanceLedger {
+  const expenses = createEmptyExpenses();
+  for (const category of EXPENSE_CATEGORIES) {
+    expenses[category] = Number(finance?.expenses?.[category] ?? 0);
+  }
+
+  return {
+    day: Math.max(1, Math.floor(Number(finance?.day ?? 1))),
+    elapsedSeconds: Math.max(0, Number(finance?.elapsedSeconds ?? 0)),
+    revenue: Number(finance?.revenue ?? 0),
+    expenses,
+    bankrupt: Boolean(finance?.bankrupt ?? false)
   };
 }
 
@@ -49,6 +90,7 @@ export class GameState {
       machines: [createStartingMachine()],
       unlockedMachines: ['manual_bench', 'cutter'],
       selectedBuild: null,
+      finance: createFreshFinance(),
       lastSavedAt: Date.now()
     });
   }
@@ -60,7 +102,7 @@ export class GameState {
         return GameState.fresh();
       }
 
-      const parsed = JSON.parse(raw) as GameStateData;
+      const parsed = JSON.parse(raw) as Partial<GameStateData>;
       const mergedInventory = createEmptyInventory();
 
       for (const item of ITEM_ORDER) {
@@ -75,6 +117,7 @@ export class GameState {
         machines: Array.isArray(parsed.machines) ? parsed.machines : [createStartingMachine()],
         unlockedMachines: Array.isArray(parsed.unlockedMachines) ? parsed.unlockedMachines : ['manual_bench', 'cutter'],
         selectedBuild: parsed.selectedBuild ?? null,
+        finance: normalizeFinance(parsed.finance),
         lastSavedAt: Number(parsed.lastSavedAt ?? Date.now())
       });
     } catch {
@@ -129,13 +172,47 @@ export class GameState {
     }
   }
 
+  recordRevenue(amount: number): void {
+    if (amount <= 0) return;
+    this.data.finance.revenue += amount;
+  }
+
+  recordExpense(category: ExpenseCategory, amount: number): void {
+    if (amount <= 0) return;
+    this.data.finance.expenses[category] += amount;
+  }
+
+  payExpense(category: ExpenseCategory, amount: number): void {
+    if (amount <= 0) return;
+    this.data.cash -= amount;
+    this.recordExpense(category, amount);
+    this.updateBankruptcyRisk();
+  }
+
+  collectRevenue(amount: number): void {
+    if (amount <= 0) return;
+    this.data.cash += amount;
+    this.data.totalSold += amount;
+    this.recordRevenue(amount);
+    this.data.reputation += Math.max(1, Math.floor(amount / 250));
+    this.updateBankruptcyRisk();
+  }
+
+  advanceFinanceClock(deltaSeconds: number): void {
+    this.data.finance.elapsedSeconds += Math.max(0, deltaSeconds);
+    while (this.data.finance.elapsedSeconds >= 60) {
+      this.data.finance.elapsedSeconds -= 60;
+      this.data.finance.day += 1;
+    }
+  }
+
   buyMetal(amount: number): boolean {
     const cost = amount * 5;
     if (this.data.cash < cost) {
       return false;
     }
 
-    this.data.cash -= cost;
+    this.payExpense('materials', cost);
     this.data.inventory.metal_ore += amount;
     this.save();
     return true;
@@ -179,7 +256,7 @@ export class GameState {
       return false;
     }
 
-    this.data.cash -= MACHINE_CATALOG[type].cost;
+    this.payExpense('capex', MACHINE_CATALOG[type].cost);
     this.data.machines.push({
       id: createId(),
       type,
@@ -203,11 +280,15 @@ export class GameState {
       return false;
     }
 
-    this.data.cash -= cost;
+    this.payExpense('upgrades', cost);
     machine.level += 1;
     machine.lastMessage = `Upgrade para nivel ${machine.level}`;
     this.save();
 
     return true;
+  }
+
+  private updateBankruptcyRisk(): void {
+    this.data.finance.bankrupt = this.data.cash <= BANKRUPTCY_LIMIT;
   }
 }
