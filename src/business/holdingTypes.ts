@@ -43,6 +43,7 @@ export interface Manager {
   salaryMonthly: number;
   bonus: ManagerBonus;
   description: string;
+  hired: boolean;
   assignedCompanyId: string | null;
 }
 
