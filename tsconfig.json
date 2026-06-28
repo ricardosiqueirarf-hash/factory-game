@@ -8,5 +8,15 @@
     "strict": true,
     "noEmit": true
   },
-  "include": ["src"]
+  "include": [
+    "src/main.ts",
+    "src/three/**/*.ts",
+    "src/game/data/**/*.ts",
+    "src/game/state/**/*.ts",
+    "src/game/systems/**/*.ts",
+    "src/game/types.ts"
+  ],
+  "exclude": [
+    "src/game/scenes/**/*.ts"
+  ]
 }
