@@ -6,11 +6,25 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background: #070b14;
-  color: #eef3ff;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(68, 130, 190, 0.22), transparent 32%),
+    radial-gradient(circle at 78% 78%, rgba(22, 56, 110, 0.24), transparent 36%),
+    linear-gradient(135deg, #02040a 0%, #07101e 45%, #02040a 100%);
+  color: #eef7ff;
   font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  overscroll-behavior: none;
 }
 
 canvas {
   display: block;
+  image-rendering: auto;
+  filter: drop-shadow(0 0 34px rgba(120, 190, 255, 0.14));
+}
+
+::selection {
+  background: rgba(220, 245, 255, 0.25);
+  color: #ffffff;
 }
