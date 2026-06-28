@@ -52,14 +52,24 @@ export interface BusinessFinancials {
   totalResult: number;
 }
 
+export interface FounderState {
+  capital: number;
+  soldCompanies: number;
+  managedCompanies: number;
+  lastExitValue: number;
+}
+
 export interface BusinessStateData {
   companyKind: CompanyKind | null;
+  companyScale: number;
+  hasGeneralManager: boolean;
   month: number;
   elapsedSeconds: number;
   materials: MaterialState[];
   indicators: IndicatorDefinition[];
   commercial: CommercialState;
   financials: BusinessFinancials;
+  founder: FounderState;
   selectedDepartment: Department;
   lastMessage: string;
 }
