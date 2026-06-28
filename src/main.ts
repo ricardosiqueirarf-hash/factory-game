@@ -1,11 +1,8 @@
 import './styles.css';
-import { FactoryThreeAppV2 } from './three/FactoryThreeAppV2';
+import { BusinessIdleApp } from './business/BusinessIdleApp';
 
 const root = document.getElementById('game');
 
-if (!root) {
-  throw new Error('Elemento #game nao encontrado.');
+if (root) {
+  new BusinessIdleApp(root);
 }
-
-const app = new FactoryThreeAppV2(root);
-app.start();
