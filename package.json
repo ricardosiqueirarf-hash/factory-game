@@ -1,6 +1,6 @@
 {
   "name": "factory-game",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -11,9 +11,12 @@
     "build": "tsc && vite build",
     "preview": "vite preview --host 0.0.0.0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "three": "^0.179.1"
+  },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@types/three": "latest",
     "typescript": "^5.7.2",
     "vite": "^6.0.3"
   }
