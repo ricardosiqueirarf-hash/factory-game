@@ -4,6 +4,18 @@ export type MachineType = 'manual_bench' | 'cutter' | 'press' | 'assembler';
 
 export type Inventory = Record<ItemType, number>;
 
+export type ExpenseCategory = 'materials' | 'capex' | 'upgrades' | 'labor' | 'energy' | 'maintenance' | 'rent' | 'taxes' | 'other';
+
+export type ExpenseLedger = Record<ExpenseCategory, number>;
+
+export interface FinanceLedger {
+  day: number;
+  elapsedSeconds: number;
+  revenue: number;
+  expenses: ExpenseLedger;
+  bankrupt: boolean;
+}
+
 export interface ItemDefinition {
   type: ItemType;
   name: string;
@@ -45,5 +57,6 @@ export interface GameStateData {
   machines: MachineState[];
   unlockedMachines: MachineType[];
   selectedBuild: MachineType | null;
+  finance: FinanceLedger;
   lastSavedAt: number;
 }
