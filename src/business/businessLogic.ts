@@ -1,8 +1,7 @@
-import { BusinessStateData, CommercialStrategyKey, CompanyKind, IndicatorDefinition, MaterialKey, MaterialState, MonthResult } from './businessTypes';
+import { BusinessStateData, CommercialStrategyKey, CompanyKind, FounderState, MaterialKey, MaterialState, MonthResult } from './businessTypes';
 import { evaluateFormula, FormulaVariables } from './formulaEngine';
 
 const STORAGE_KEY = 'factory-idle-business-v1';
-const MONTH_SECONDS = 18;
 
 const MATERIAL_NAMES: Record<MaterialKey, string> = {
   aluminum: 'Aluminio',
@@ -22,9 +21,10 @@ const MATERIAL_UNITS: Record<MaterialKey, string> = {
   varnish: 'L'
 };
 
-const PRODUCT_CONFIG: Record<CompanyKind, { name: string; unitRevenue: number; unitVariableCost: number; fixedCost: number; materials: Array<{ key: MaterialKey; unitCost: number; stock: number; monthlyFlow: number; perUnit: number }> }> = {
+const PRODUCT_CONFIG: Record<CompanyKind, { name: string; basePrice: number; unitRevenue: number; unitVariableCost: number; fixedCost: number; materials: Array<{ key: MaterialKey; unitCost: number; stock: number; monthlyFlow: number; perUnit: number }> }> = {
   doors_factory: {
     name: 'Fabrica de portas',
+    basePrice: 32000,
     unitRevenue: 520,
     unitVariableCost: 110,
     fixedCost: 5200,
@@ -36,6 +36,7 @@ const PRODUCT_CONFIG: Record<CompanyKind, { name: string; unitRevenue: number; u
   },
   sawmill: {
     name: 'Madereira',
+    basePrice: 26000,
     unitRevenue: 290,
     unitVariableCost: 70,
     fixedCost: 3900,
@@ -47,20 +48,32 @@ const PRODUCT_CONFIG: Record<CompanyKind, { name: string; unitRevenue: number; u
   }
 };
 
-export function createFreshBusiness(kind: CompanyKind | null = null): BusinessStateData {
+function createFounder(founder?: Partial<FounderState>): FounderState {
+  return {
+    capital: Number(founder?.capital ?? 60000),
+    soldCompanies: Number(founder?.soldCompanies ?? 0),
+    managedCompanies: Number(founder?.managedCompanies ?? 0),
+    lastExitValue: Number(founder?.lastExitValue ?? 0)
+  };
+}
+
+export function createFreshBusiness(kind: CompanyKind | null = null, founder?: FounderState, scale = 1): BusinessStateData {
   const chosen = kind ?? null;
   const config = chosen ? PRODUCT_CONFIG[chosen] : PRODUCT_CONFIG.doors_factory;
+  const size = Math.max(1, Math.round(scale));
   return {
     companyKind: chosen,
+    companyScale: size,
+    hasGeneralManager: false,
     month: 1,
     elapsedSeconds: 0,
     materials: config.materials.map((material) => ({
       key: material.key,
       name: MATERIAL_NAMES[material.key],
       unit: MATERIAL_UNITS[material.key],
-      stock: material.stock,
+      stock: Math.round(material.stock * size),
       unitCost: material.unitCost,
-      monthlyFlow: material.monthlyFlow,
+      monthlyFlow: Math.round(material.monthlyFlow * size),
       demandVariation: 1,
       reorderFormula: '=SE(ESTOQUE < VAZAO * 1.5; 1; 0)',
       quantityFormula: '=MAX(0; VAZAO * 2 - ESTOQUE)',
@@ -73,15 +86,15 @@ export function createFreshBusiness(kind: CompanyKind | null = null): BusinessSt
       { id: 'need', name: 'NECESSIDADE', formula: '=MAX(0; VAZAO * 2 - ESTOQUE)', value: 0 }
     ],
     commercial: {
-      baseDemand: chosen === 'sawmill' ? 34 : 42,
-      salesCapacity: chosen === 'sawmill' ? 36 : 46,
-      sellers: 1,
+      baseDemand: Math.round((chosen === 'sawmill' ? 34 : 42) * size),
+      salesCapacity: Math.round((chosen === 'sawmill' ? 36 : 46) * size),
+      sellers: Math.max(1, size),
       marketingLevel: 0,
       trainingLevel: 0,
       salesFocus: 1
     },
     financials: {
-      cash: 45000,
+      cash: Math.round(18000 * size),
       revenueMonth: 0,
       lostRevenueMonth: 0,
       purchasesMonth: 0,
@@ -93,8 +106,9 @@ export function createFreshBusiness(kind: CompanyKind | null = null): BusinessSt
       totalRevenue: 0,
       totalResult: 0
     },
+    founder: createFounder(founder),
     selectedDepartment: 'logistics',
-    lastMessage: chosen ? `Empresa iniciada: ${config.name}` : 'Escolha uma empresa para iniciar o simulador.'
+    lastMessage: chosen ? `Empresa comprada: ${config.name} porte ${size}.` : 'Escolha uma empresa para comprar.'
   };
 }
 
@@ -102,9 +116,21 @@ export function loadBusiness(): BusinessStateData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createFreshBusiness(null);
-    const parsed = JSON.parse(raw) as BusinessStateData;
-    if (!parsed.companyKind) return createFreshBusiness(null);
-    return parsed;
+    const parsed = JSON.parse(raw) as Partial<BusinessStateData>;
+    const loaded = createFreshBusiness(parsed.companyKind ?? null, createFounder(parsed.founder), parsed.companyScale ?? 1);
+    return {
+      ...loaded,
+      ...parsed,
+      companyScale: Number(parsed.companyScale ?? loaded.companyScale),
+      hasGeneralManager: Boolean(parsed.hasGeneralManager ?? false),
+      founder: createFounder(parsed.founder),
+      materials: Array.isArray(parsed.materials) ? parsed.materials : loaded.materials,
+      indicators: Array.isArray(parsed.indicators) ? parsed.indicators : loaded.indicators,
+      commercial: parsed.commercial ?? loaded.commercial,
+      financials: parsed.financials ?? loaded.financials,
+      selectedDepartment: parsed.selectedDepartment ?? 'logistics',
+      lastMessage: parsed.lastMessage ?? loaded.lastMessage
+    };
   } catch {
     return createFreshBusiness(null);
   }
@@ -119,8 +145,28 @@ export function resetBusiness(): BusinessStateData {
   return createFreshBusiness(null);
 }
 
-export function chooseCompany(kind: CompanyKind): BusinessStateData {
-  const state = createFreshBusiness(kind);
+export function getCompanyPurchasePrice(kind: CompanyKind, scale: number): number {
+  return Math.round(PRODUCT_CONFIG[kind].basePrice * Math.pow(scale, 1.42));
+}
+
+export function getNextAffordableScale(founder: FounderState): number {
+  const base = Math.max(1, founder.soldCompanies + founder.managedCompanies + 1);
+  return Math.min(12, base);
+}
+
+export function chooseCompany(kind: CompanyKind, current?: BusinessStateData, scale = getNextAffordableScale(current?.founder ?? createFounder())): BusinessStateData {
+  const founder = createFounder(current?.founder);
+  const price = getCompanyPurchasePrice(kind, scale);
+  if (founder.capital < price) {
+    const state = createFreshBusiness(null, founder);
+    state.lastMessage = `Capital insuficiente. Essa empresa custa ${formatMoney(price)}.`;
+    saveBusiness(state);
+    return state;
+  }
+
+  founder.capital -= price;
+  const state = createFreshBusiness(kind, founder, scale);
+  state.lastMessage = `${PRODUCT_CONFIG[kind].name} comprada por ${formatMoney(price)}. Agora opere manualmente mes a mes.`;
   saveBusiness(state);
   return state;
 }
@@ -130,20 +176,18 @@ export function getCompanyName(kind: CompanyKind | null): string {
   return PRODUCT_CONFIG[kind].name;
 }
 
-export function getMonthSeconds(): number {
-  return MONTH_SECONDS;
-}
-
 export function getMaterialVariables(state: BusinessStateData, material: MaterialState): FormulaVariables {
   const variables: FormulaVariables = {
     ESTOQUE: material.stock,
     VAZAO: material.monthlyFlow,
     DEMANDA: getCommercialDemand(state),
     CAIXA: state.financials.cash,
+    CAPITAL: state.founder.capital,
     CUSTO: material.unitCost,
     MES: state.month,
     COMPRA_MES: material.purchasedMonth,
-    RUPTURA: material.rupturesMonth
+    RUPTURA: material.rupturesMonth,
+    PORTE: state.companyScale
   };
 
   for (const indicator of state.indicators) {
@@ -155,7 +199,7 @@ export function getMaterialVariables(state: BusinessStateData, material: Materia
 
 export function recalculateIndicators(state: BusinessStateData): void {
   const reference = state.materials[0];
-  const baseVariables = reference ? getMaterialVariables(state, reference) : { ESTOQUE: 0, VAZAO: 0, DEMANDA: 0, CAIXA: state.financials.cash, CUSTO: 0, MES: state.month };
+  const baseVariables = reference ? getMaterialVariables(state, reference) : { ESTOQUE: 0, VAZAO: 0, DEMANDA: 0, CAIXA: state.financials.cash, CAPITAL: state.founder.capital, CUSTO: 0, MES: state.month, PORTE: state.companyScale };
   for (const indicator of state.indicators) {
     const result = evaluateFormula(indicator.formula, baseVariables);
     indicator.value = result.value;
@@ -189,13 +233,11 @@ export function runMonth(state: BusinessStateData): MonthResult {
     }
   }
 
-  const demand = getCommercialDemand(state);
+  const demandedUnits = Math.round(getCommercialDemand(state) * randomBetween(0.86, 1.22));
   const salesCapacity = getCommercialCapacity(state);
-  const demandedUnits = Math.round(demand * randomBetween(0.86, 1.22));
   const possibleByStock = getPossibleUnitsByStock(state);
   const fulfilledUnits = Math.max(0, Math.min(demandedUnits, salesCapacity, possibleByStock));
   const lostUnits = Math.max(0, demandedUnits - fulfilledUnits);
-
   consumeMaterialsForUnits(state, fulfilledUnits);
 
   const revenue = fulfilledUnits * config.unitRevenue;
@@ -208,7 +250,7 @@ export function runMonth(state: BusinessStateData): MonthResult {
     material.idleStockCost = excess * material.unitCost * 0.025;
     return total + material.idleStockCost;
   }, 0);
-  const fixedCost = config.fixedCost + state.commercial.sellers * 950;
+  const fixedCost = config.fixedCost * state.companyScale + state.commercial.sellers * 950 + (state.hasGeneralManager ? 8500 : 0);
   const grossMargin = revenue - variableCost - purchases;
   const result = revenue - variableCost - purchases - commercialCost - stockHoldingCost - fixedCost;
 
@@ -227,18 +269,54 @@ export function runMonth(state: BusinessStateData): MonthResult {
   state.financials.resultMonth = result;
   state.financials.totalRevenue += revenue;
   state.financials.totalResult += result;
-  state.lastMessage = lostUnits > 0
-    ? `Mes ${state.month}: ruptura! ${lostUnits} pedidos perdidos por estoque/capacidade.`
-    : `Mes ${state.month}: operacao atendida sem ruptura.`;
+  state.lastMessage = lostUnits > 0 ? `Mes ${state.month}: ruptura! ${lostUnits} pedidos perdidos.` : `Mes ${state.month}: atendido sem ruptura.`;
 
   saveBusiness(state);
   return { month: state.month, demandedUnits, fulfilledUnits, lostUnits, revenue, lostRevenue, purchases, result };
 }
 
+export function canHireGeneralManager(state: BusinessStateData): boolean {
+  const margin = state.financials.revenueMonth > 0 ? state.financials.resultMonth / state.financials.revenueMonth : 0;
+  return Boolean(state.companyKind && !state.hasGeneralManager && state.month >= 6 && state.financials.cash >= 80000 && state.financials.resultMonth >= 12000 && margin >= 0.15);
+}
+
+export function hireGeneralManager(state: BusinessStateData): string {
+  if (!canHireGeneralManager(state)) return 'Ainda nao da para contratar gerente geral. Busque caixa, margem e lucro mensal mais consistentes.';
+  state.hasGeneralManager = true;
+  state.founder.managedCompanies += 1;
+  state.founder.capital += Math.round(state.financials.cash * 0.35);
+  state.financials.cash = Math.round(state.financials.cash * 0.65);
+  state.lastMessage = 'Gerente geral contratado. A empresa virou ativo gerenciado e parte do caixa foi liberada para o fundador.';
+  saveBusiness(state);
+  return state.lastMessage;
+}
+
+export function getCompanyValuation(state: BusinessStateData): number {
+  if (!state.companyKind) return 0;
+  const averageRevenue = state.month > 1 ? state.financials.totalRevenue / Math.max(1, state.month - 1) : state.financials.revenueMonth;
+  const averageResult = state.month > 1 ? state.financials.totalResult / Math.max(1, state.month - 1) : state.financials.resultMonth;
+  const stockValue = state.materials.reduce((total, material) => total + material.stock * material.unitCost, 0);
+  const resultMultiple = Math.max(0, averageResult) * 18;
+  const revenueMultiple = averageRevenue * 1.2;
+  return Math.max(0, Math.round(state.financials.cash + stockValue * 0.55 + resultMultiple + revenueMultiple));
+}
+
+export function sellCompany(state: BusinessStateData): BusinessStateData {
+  const founder = createFounder(state.founder);
+  const valuation = getCompanyValuation(state);
+  founder.capital += valuation;
+  founder.soldCompanies += 1;
+  founder.lastExitValue = valuation;
+  const next = createFreshBusiness(null, founder, getNextAffordableScale(founder));
+  next.lastMessage = `Empresa vendida por ${formatMoney(valuation)}. Capital do fundador: ${formatMoney(founder.capital)}. Compre uma empresa maior.`;
+  saveBusiness(next);
+  return next;
+}
+
 export function applyCommercialStrategy(state: BusinessStateData, strategy: CommercialStrategyKey): string {
   const financials = state.financials;
   if (strategy === 'hire_seller') {
-    const cost = 3500;
+    const cost = 3500 * Math.max(1, state.companyScale * 0.7);
     if (financials.cash < cost) return 'Caixa insuficiente para contratar vendedor.';
     financials.cash -= cost;
     state.commercial.sellers += 1;
@@ -250,7 +328,7 @@ export function applyCommercialStrategy(state: BusinessStateData, strategy: Comm
     if (financials.cash < cost) return 'Caixa insuficiente para marketing.';
     financials.cash -= cost;
     state.commercial.marketingLevel += 1;
-    state.commercial.baseDemand += 8;
+    state.commercial.baseDemand += 8 * state.companyScale;
     return 'Campanha de marketing ativa. Demanda media aumentou.';
   }
   if (strategy === 'training') {
@@ -265,7 +343,7 @@ export function applyCommercialStrategy(state: BusinessStateData, strategy: Comm
   if (financials.cash < cost) return 'Caixa insuficiente para realocar equipe.';
   financials.cash -= cost;
   state.commercial.salesFocus = Math.min(1.8, state.commercial.salesFocus + 0.12);
-  state.commercial.baseDemand += 3;
+  state.commercial.baseDemand += 3 * state.companyScale;
   return 'Equipe realocada para vendas. A empresa ficou mais agressiva comercialmente.';
 }
 
@@ -297,6 +375,10 @@ function consumeMaterialsForUnits(state: BusinessStateData, units: number): void
     const material = state.materials.find((item) => item.key === materialConfig.key);
     if (material) material.stock = Math.max(0, material.stock - units * materialConfig.perUnit);
   }
+}
+
+function formatMoney(value: number): string {
+  return `R$ ${Math.round(value).toLocaleString('pt-BR')}`;
 }
 
 function randomBetween(min: number, max: number): number {
