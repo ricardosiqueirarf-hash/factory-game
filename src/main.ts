@@ -1,5 +1,5 @@
 import './styles.css';
-import { FactoryThreeApp } from './three/FactoryThreeApp';
+import { FactoryThreeAppV2 } from './three/FactoryThreeAppV2';
 
 const root = document.getElementById('game');
 
@@ -7,5 +7,5 @@ if (!root) {
   throw new Error('Elemento #game nao encontrado.');
 }
 
-const app = new FactoryThreeApp(root);
+const app = new FactoryThreeAppV2(root);
 app.start();
