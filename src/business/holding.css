@@ -1,29 +1,211 @@
+:root {
+  --gold: #ffd166;
+  --gold-2: #ffb703;
+  --green: #42f58d;
+  --red: #ff5c7a;
+  --blue: #63d2ff;
+  --purple: #c084fc;
+  --panel: rgba(10, 18, 32, 0.86);
+  --panel-2: rgba(18, 31, 54, 0.92);
+  --stroke: rgba(255, 255, 255, 0.13);
+}
+
+.idle-root {
+  padding-bottom: 100px;
+}
+
+.tycoon-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 209, 102, 0.22), transparent 34%),
+    radial-gradient(circle at 88% 12%, rgba(99, 210, 255, 0.22), transparent 32%),
+    linear-gradient(145deg, rgba(18, 34, 62, 0.96), rgba(4, 9, 19, 0.96));
+}
+
+.tycoon-hero::after {
+  content: '';
+  position: absolute;
+  inset: auto -80px -120px auto;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: rgba(255, 209, 102, 0.12);
+  pointer-events: none;
+}
+
+.tycoon-hero h1 {
+  font-size: clamp(28px, 5vw, 48px);
+  letter-spacing: -0.04em;
+  text-shadow: 0 6px 26px rgba(0, 0, 0, 0.35);
+}
+
+.hero-subtitle {
+  display: block;
+  margin-top: 8px;
+  color: #b9d2e9;
+  font-weight: 700;
+}
+
+.top-metrics {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+  min-width: min(520px, 100%);
+}
+
+.top-metrics span {
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.045));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 10px 24px rgba(0,0,0,0.22);
+}
+
+.top-metrics small {
+  display: block;
+  color: #93abc7;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.top-metrics b {
+  display: block;
+  margin-top: 4px;
+  font-size: clamp(18px, 3vw, 25px);
+  line-height: 1;
+}
+
+.tycoon-action-bar {
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(16, 30, 52, 0.94), rgba(6, 12, 24, 0.92));
+  box-shadow: 0 16px 36px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.primary-action,
+.buy-button,
+.sell-button {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  min-height: 54px;
+  border: 0 !important;
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--gold), var(--gold-2)) !important;
+  color: #241600 !important;
+  text-align: center !important;
+  font-weight: 1000 !important;
+  letter-spacing: -0.02em;
+  box-shadow: 0 12px 0 #9a6500, 0 18px 34px rgba(255, 183, 3, 0.24), inset 0 1px 0 rgba(255,255,255,0.5) !important;
+  transform: translateY(0);
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+
+.primary-action:hover,
+.buy-button:hover,
+.sell-button:hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+}
+
+.primary-action:active,
+.buy-button:active,
+.sell-button:active {
+  transform: translateY(5px);
+  box-shadow: 0 6px 0 #9a6500, 0 10px 22px rgba(255, 183, 3, 0.2), inset 0 1px 0 rgba(255,255,255,0.5) !important;
+}
+
+.sell-button {
+  background: linear-gradient(180deg, #68e1fd, #1da1f2) !important;
+  color: #041423 !important;
+  box-shadow: 0 12px 0 #0b5a8b, 0 18px 34px rgba(29, 161, 242, 0.24), inset 0 1px 0 rgba(255,255,255,0.5) !important;
+}
+
+.bottom-tycoon-nav {
+  border-radius: 22px;
+  background: rgba(5, 10, 20, 0.78);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--stroke);
+  padding: 8px;
+}
+
+.bottom-tycoon-nav button {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  min-height: 58px;
+  border-radius: 16px;
+  padding: 8px 6px !important;
+  font-size: 12px;
+}
+
+.bottom-tycoon-nav button.active {
+  background: linear-gradient(180deg, rgba(255, 209, 102, 0.28), rgba(99, 210, 255, 0.16)) !important;
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 26px rgba(0,0,0,0.28);
+}
+
+.tab-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
 .company-card {
   position: relative;
-  border: 1px solid rgba(230, 250, 255, 0.13);
-  background: linear-gradient(180deg, rgba(12, 24, 42, 0.94), rgba(4, 9, 18, 0.92));
+  overflow: hidden;
+  border: 1px solid rgba(230, 250, 255, 0.14);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(99, 210, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, var(--panel-2), rgba(5, 10, 20, 0.95));
   color: #eef7ff;
-  padding: 16px;
+  padding: 18px;
   text-align: left;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.09), 0 18px 40px rgba(0,0,0,0.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 18px 42px rgba(0,0,0,0.32);
+}
+
+.company-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent 28%, transparent 70%, rgba(255,255,255,0.04));
 }
 
 .company-card.rare {
-  border-color: rgba(250, 240, 180, 0.72);
-  box-shadow: 0 0 32px rgba(250, 240, 180, 0.12), inset 0 1px 0 rgba(255,255,255,0.14);
+  border-color: rgba(255, 209, 102, 0.95);
+  box-shadow: 0 0 34px rgba(255, 209, 102, 0.18), inset 0 1px 0 rgba(255,255,255,0.18), 0 18px 42px rgba(0,0,0,0.34);
+}
+
+.company-card.rare::after {
+  content: 'RARE DEAL';
+  position: absolute;
+  top: 18px;
+  right: -36px;
+  padding: 6px 42px;
+  transform: rotate(35deg);
+  background: linear-gradient(90deg, var(--gold), #fff3bf);
+  color: #2a1800;
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: 0.12em;
 }
 
 .company-card header {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 14px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .company-card h3 {
   margin: 0;
   color: #fff;
+  font-size: clamp(20px, 4vw, 30px);
+  letter-spacing: -0.04em;
 }
 
 .company-card p {
@@ -31,16 +213,63 @@
   line-height: 1.4;
 }
 
+.profit-chip {
+  flex: 0 0 auto;
+  padding: 9px 10px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.26);
+  border: 1px solid rgba(255,255,255,0.12);
+  font-size: 13px;
+  text-align: right;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  border: 1px solid rgba(255,255,255,0.18);
+}
+
+.badge-gold {
+  color: #2a1800;
+  background: linear-gradient(180deg, #fff3bf, var(--gold));
+}
+
+.badge-red {
+  color: #fff;
+  background: rgba(255, 92, 122, 0.22);
+}
+
+.badge-blue {
+  color: #fff;
+  background: rgba(99, 210, 255, 0.18);
+}
+
 .company-card button,
 .upgrade-list button {
+  position: relative;
+  z-index: 1;
   width: 100%;
   margin-top: 10px;
   border: 1px solid rgba(230, 250, 255, 0.16);
+  border-radius: 16px;
   background: linear-gradient(180deg, rgba(30, 56, 88, 0.96), rgba(9, 18, 32, 0.96));
   color: #fff;
-  padding: 12px;
+  padding: 13px;
   text-align: left;
-  font-weight: 800;
+  font-weight: 850;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 20px rgba(0,0,0,0.18);
 }
 
 .company-card button:hover,
@@ -55,25 +284,28 @@
 }
 
 .mini-metrics {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin: 12px 0;
+  margin: 14px 0;
 }
 
 .mini-metrics p {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  gap: 4px;
   margin: 0;
-  padding: 8px;
+  padding: 10px;
   border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.045);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.052);
   font-size: 12px;
 }
 
 .mini-metrics b {
   color: #fff;
+  font-size: 15px;
 }
 
 .card-actions {
@@ -81,8 +313,10 @@
 }
 
 .upgrade-list {
-  margin-top: 14px;
-  padding-top: 12px;
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  padding-top: 13px;
   border-top: 1px solid rgba(255,255,255,0.1);
 }
 
@@ -106,12 +340,53 @@
   color: #f7d98c;
 }
 
-.history-list p span {
+.rarity-comum {
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.rarity-raro {
+  border-color: rgba(96, 165, 250, 0.7);
+}
+
+.rarity-epico {
+  border-color: rgba(192, 132, 252, 0.8);
+  box-shadow: 0 0 30px rgba(192, 132, 252, 0.12), inset 0 1px 0 rgba(255,255,255,0.1), 0 18px 42px rgba(0,0,0,0.32);
+}
+
+.rarity-lendário,
+.rarity-lendario {
+  border-color: rgba(255, 209, 102, 0.9);
+  box-shadow: 0 0 34px rgba(255, 209, 102, 0.17), inset 0 1px 0 rgba(255,255,255,0.1), 0 18px 42px rgba(0,0,0,0.32);
+}
+
+.tycoon-stat-grid article {
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255,255,255,0.12), transparent 42%),
+    linear-gradient(180deg, rgba(19, 38, 66, 0.94), rgba(7, 13, 26, 0.92));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 14px 34px rgba(0,0,0,0.26);
+}
+
+.tycoon-stat-grid article b {
+  display: block;
+  margin-top: 8px;
+  font-size: clamp(22px, 5vw, 34px);
+  line-height: 1;
+}
+
+.tycoon-feed {
+  border-radius: 22px;
+  margin-top: 16px;
+}
+
+.history-list p span,
+.tycoon-feed p span {
   display: grid;
   gap: 4px;
 }
 
-.history-list small {
+.history-list small,
+.tycoon-feed small {
   color: #9eb8d3;
 }
 
@@ -120,15 +395,136 @@
 }
 
 .good {
-  color: #86efac !important;
+  color: var(--green) !important;
+  text-shadow: 0 0 16px rgba(66, 245, 141, 0.16);
 }
 
 .bad {
-  color: #fb7185 !important;
+  color: var(--red) !important;
+  text-shadow: 0 0 16px rgba(255, 92, 122, 0.16);
 }
 
-@media (max-width: 760px) {
+.exec-risk {
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 209, 102, 0.2), rgba(99, 210, 255, 0.08));
+}
+
+@media (max-width: 980px) {
+  .idle-root {
+    padding: 12px 12px 112px;
+  }
+
+  .tycoon-hero {
+    border-radius: 24px;
+    padding: 18px !important;
+  }
+
+  .top-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+    width: 100%;
+  }
+
+  .top-metrics span {
+    padding: 12px !important;
+  }
+
+  .month-bar {
+    grid-template-columns: 1fr;
+    border-radius: 22px;
+  }
+
+  .primary-action {
+    min-height: 62px;
+    font-size: 20px;
+  }
+
+  .sector-layout {
+    display: block !important;
+  }
+
+  .sector-main,
+  .sector-side {
+    border-radius: 24px;
+    padding: 14px !important;
+  }
+
+  .sector-side {
+    margin-top: 14px;
+  }
+
+  .section-title {
+    gap: 8px;
+  }
+
+  .company-grid,
+  .owned-grid,
+  .finance-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .company-card {
+    border-radius: 24px;
+    padding: 16px;
+  }
+
+  .company-card header {
+    display: grid;
+    gap: 10px;
+  }
+
+  .profit-chip {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .mini-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bottom-tycoon-nav {
+    position: fixed;
+    z-index: 50;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    margin: 0 !important;
+    max-width: none !important;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+
+  .bottom-tycoon-nav button {
+    min-height: 62px;
+    font-size: 10px;
+    border-radius: 15px;
+  }
+
+  .tab-icon {
+    font-size: 21px;
+  }
+}
+
+@media (max-width: 430px) {
+  .top-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .top-metrics b {
+    font-size: 17px;
+  }
+
   .mini-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .company-card h3 {
+    font-size: 22px;
+  }
+
+  .bottom-tycoon-nav button span:not(.tab-icon) {
+    display: none;
   }
 }
