@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GRID, ITEM_CATALOG, ITEM_ORDER, MACHINE_CATALOG, MACHINE_ORDER, getMachineSpeedMultiplier, getUpgradeCost } from '../game/data/catalog';
 import { GameState } from '../game/state/GameState';
 import { FactorySimulator } from '../game/systems/FactorySimulator';
+import { getDreSnapshot, recordSaleWithTaxes } from '../game/systems/FinanceSimulator';
 import { ItemType, MachineState, MachineType } from '../game/types';
 import { MachineModelParts, animateMachineModel, createMachineModel } from './machineModels';
 import { WorkerView, animateWorker, createWorker } from './workers';
@@ -15,6 +16,7 @@ type Hud = {
   inventory: HTMLDivElement;
   production: HTMLDivElement;
   machines: HTMLDivElement;
+  dre: HTMLDivElement;
   selected: HTMLDivElement;
   status: HTMLDivElement;
   buttons: Map<MachineType, HTMLButtonElement>;
@@ -38,7 +40,7 @@ export class FactoryThreeAppV2 {
   private readonly machineObjects: THREE.Object3D[] = [];
   private readonly workers: WorkerView[] = [];
   private selectedMachineId: string | null = null;
-  private statusMessage = 'Fabrica 3D viva online. Workers e maquinas animadas ativos.';
+  private statusMessage = 'Fabrica 3D viva online. Cresca sem quebrar: acompanhe caixa, DRE e gargalos.';
   private saveTimer = 0;
   private elapsed = 0;
 
@@ -183,7 +185,7 @@ export class FactoryThreeAppV2 {
     this.root.appendChild(hud);
     const top = document.createElement('div');
     top.className = 'hud-top';
-    top.innerHTML = '<div><strong>NEO FACTORY 3D</strong><span>workers + machine simulation</span></div>';
+    top.innerHTML = '<div><strong>NEO FACTORY 3D</strong><span>DRE + caixa + producao</span></div>';
     const cash = document.createElement('div');
     cash.className = 'cash-readout';
     top.appendChild(cash);
@@ -193,7 +195,7 @@ export class FactoryThreeAppV2 {
     hud.appendChild(inventory);
     const panel = document.createElement('aside');
     panel.className = 'command-panel';
-    panel.innerHTML = '<h1>Command Center</h1><p>Workers circulam pela fabrica e maquinas tem animacoes proprias por tipo.</p>';
+    panel.innerHTML = '<h1>Command Center</h1><p>Simulador de gestao: produza, venda, invista e acompanhe a DRE para crescer sem quebrar.</p>';
     hud.appendChild(panel);
 
     const actions = document.createElement('div');
@@ -215,11 +217,12 @@ export class FactoryThreeAppV2 {
     panel.appendChild(buildGrid);
     const production = this.createMetricCard(panel, 'Producao/min');
     const machines = this.createMetricCard(panel, 'Parque fabril');
+    const dre = this.createMetricCard(panel, 'DRE gerencial');
     const selected = this.createMetricCard(panel, 'Selecionada');
     const status = document.createElement('div');
     status.className = 'status-console';
     hud.appendChild(status);
-    return { cash, inventory, production, machines, selected, status, buttons };
+    return { cash, inventory, production, machines, dre, selected, status, buttons };
   }
 
   private createMetricCard(parent: HTMLElement, title: string): HTMLDivElement {
@@ -310,26 +313,24 @@ export class FactoryThreeAppV2 {
 
   private buyMetal(): void {
     const ok = this.state.buyMetal(10);
-    this.statusMessage = ok ? 'Materia-prima comprada: +10 metal bruto.' : 'Saldo insuficiente para comprar metal.';
+    this.statusMessage = ok ? 'Compra registrada na DRE: materia-prima +10 metal bruto.' : 'Saldo insuficiente para comprar metal.';
   }
 
   private sellAll(): void {
-    let revenue = 0;
+    let grossRevenue = 0;
     for (const item of ITEM_ORDER) {
       if (item === 'metal_ore') continue;
       const qty = this.state.data.inventory[item];
-      revenue += qty * ITEM_CATALOG[item].salePrice;
+      grossRevenue += qty * ITEM_CATALOG[item].salePrice;
       this.state.data.inventory[item] = 0;
     }
-    if (revenue <= 0) {
+    if (grossRevenue <= 0) {
       this.statusMessage = 'Nenhum produto acabado para vender.';
       return;
     }
-    this.state.data.cash += revenue;
-    this.state.data.totalSold += revenue;
-    this.state.data.reputation += Math.max(1, Math.floor(revenue / 250));
+    const netRevenue = recordSaleWithTaxes(this.state, grossRevenue);
     this.state.save();
-    this.statusMessage = `Despacho concluido. Receita: R$ ${Math.floor(revenue).toLocaleString('pt-BR')}.`;
+    this.statusMessage = `Venda registrada na DRE. Bruto R$ ${Math.floor(grossRevenue).toLocaleString('pt-BR')} | Liquido R$ ${Math.floor(netRevenue).toLocaleString('pt-BR')}.`;
   }
 
   private selectBuild(type: MachineType): void {
@@ -344,7 +345,7 @@ export class FactoryThreeAppV2 {
     }
     this.selectedMachineId = null;
     this.state.data.selectedBuild = this.state.data.selectedBuild === type ? null : type;
-    this.statusMessage = this.state.data.selectedBuild ? `Modo construcao 3D: ${def.name}. Clique no piso.` : 'Construcao cancelada.';
+    this.statusMessage = this.state.data.selectedBuild ? `Modo construcao 3D: ${def.name}. Clique no piso. Esse investimento entra como CAPEX na DRE.` : 'Construcao cancelada.';
   }
 
   private selectMachine(machine: MachineState, upgrade: boolean): void {
@@ -354,7 +355,7 @@ export class FactoryThreeAppV2 {
     const cost = getUpgradeCost(machine.type, machine.level);
     if (upgrade) {
       const ok = this.state.upgradeMachine(machine.id, cost);
-      this.statusMessage = ok ? `${def.name} atualizada para nivel ${machine.level}.` : `Upgrade custa R$ ${cost}.`;
+      this.statusMessage = ok ? `${def.name} atualizada para nivel ${machine.level}. Upgrade entrou na DRE.` : `Upgrade custa R$ ${cost}.`;
       return;
     }
     this.statusMessage = `${def.name} nivel ${machine.level}. Shift + clique para upgrade por R$ ${cost}.`;
@@ -427,6 +428,7 @@ export class FactoryThreeAppV2 {
     this.hud.inventory.innerHTML = ITEM_ORDER.map((item) => `<span>${ITEM_CATALOG[item].name}: <strong>${Math.floor(this.state.data.inventory[item])}</strong></span>`).join('');
     this.hud.production.innerHTML = this.productionHtml();
     this.hud.machines.innerHTML = this.machineHtml();
+    this.hud.dre.innerHTML = this.dreHtml();
     this.hud.selected.innerHTML = this.selectedHtml();
     this.hud.status.textContent = this.statusMessage;
     this.updateButtons();
@@ -456,6 +458,26 @@ export class FactoryThreeAppV2 {
     const revenue = ITEM_ORDER.reduce((total, item) => item === 'metal_ore' ? total : total + (cap[item] ?? 0) * ITEM_CATALOG[item].salePrice, 0);
     rows.push(`<p>Capacidade bruta<strong>R$ ${Math.floor(revenue).toLocaleString('pt-BR')}/min</strong></p>`);
     return rows.join('');
+  }
+
+  private dreHtml(): string {
+    const dre = getDreSnapshot(this.state);
+    const riskLabel = dre.risk === 'saudavel' ? 'Saudavel' : dre.risk === 'atencao' ? 'Atencao' : dre.risk === 'critico' ? 'Critico' : 'Quebrou';
+    const runway = dre.runwayDays > 99 ? '+99 dias' : `${Math.max(0, dre.runwayDays).toFixed(1)} dias`;
+    return [
+      `<p>Dia simulado<strong>${dre.day}</strong></p>`,
+      `<p>Receita liquida<strong>${this.money(dre.revenue)}</strong></p>`,
+      `<p>Impostos<strong>${this.money(dre.taxes)}</strong></p>`,
+      `<p>Materia-prima<strong>${this.money(dre.materials)}</strong></p>`,
+      `<p>Folha + aluguel<strong>${this.money(dre.labor + dre.rent)}</strong></p>`,
+      `<p>Energia + manut.<strong>${this.money(dre.energy + dre.maintenance)}</strong></p>`,
+      `<p>EBITDA<strong>${this.money(dre.ebitda)}</strong></p>`,
+      `<p>CAPEX + upgrades<strong>${this.money(dre.capex + dre.upgrades)}</strong></p>`,
+      `<p>Resultado<strong>${this.money(dre.netResult)}</strong></p>`,
+      `<p>Margem<strong>${(dre.margin * 100).toFixed(1)}%</strong></p>`,
+      `<p>Folego de caixa<strong>${runway}</strong></p>`,
+      `<p>Risco<strong>${riskLabel}</strong></p>`
+    ].join('');
   }
 
   private machineHtml(): string {
@@ -489,6 +511,10 @@ export class FactoryThreeAppV2 {
       for (const [item, amount] of Object.entries(def.output)) cap[item as ItemType] = (cap[item as ItemType] ?? 0) + (Number(amount) * 60 * mult) / def.cycleSeconds;
     }
     return cap;
+  }
+
+  private money(value: number): string {
+    return `R$ ${Math.floor(value).toLocaleString('pt-BR')}`;
   }
 
   private cellToWorld(x: number, y: number): THREE.Vector3 {
