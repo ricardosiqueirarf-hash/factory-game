@@ -1,10 +1,9 @@
-import { BusinessStateData, CommercialStrategyKey, CompanyKind, Department, MaterialState } from './businessTypes';
-import { applyCommercialStrategy, canHireGeneralManager, chooseCompany, getCompanyName, getCompanyPurchasePrice, getCompanyValuation, getNextAffordableScale, loadBusiness, recalculateIndicators, resetBusiness, runMonth, saveBusiness, sellCompany } from './businessLogic';
-import { delegateCompanyToManager } from './exitLogic';
 import { evaluateFormula } from './formulaEngine';
+import { buyNextCompany, canHireManager, getCompanyPrice, getSelectedCompany, hireManager, loadPortfolio, money, resetPortfolio, savePortfolio, simulateManagedQuarter, simulatePlayerMonth } from './portfolioLogic';
+import { PortfolioCompany, PortfolioMaterial, PortfolioState } from './portfolioTypes';
 
 export class BusinessIdleApp {
-  private state: BusinessStateData = loadBusiness();
+  private state: PortfolioState = loadPortfolio();
 
   constructor(private readonly root: HTMLElement) {
     this.root.className = 'idle-root';
@@ -12,151 +11,205 @@ export class BusinessIdleApp {
   }
 
   private render(): void {
-    if (!this.state.companyKind) {
-      this.root.innerHTML = this.startHtml();
-      this.bind();
-      return;
-    }
-
+    const selected = getSelectedCompany(this.state);
     this.root.innerHTML = `
       <header class="idle-topbar">
-        <div><p class="eyebrow">Factory Idle OS</p><h1>${getCompanyName(this.state.companyKind)} | Porte ${this.state.companyScale}</h1></div>
-        <div class="top-metrics"><span>Mes <b>${this.state.month}</b></span><span>Capital fundador <b>${this.money(this.state.founder.capital)}</b></span><span>Caixa empresa <b>${this.money(this.state.financials.cash)}</b></span><span>Resultado <b>${this.money(this.state.financials.resultMonth)}</b></span></div>
+        <div><p class="eyebrow">Carteira de empresas</p><h1>Holding operacional</h1></div>
+        <div class="top-metrics">
+          <span>Capital <b>${money(this.state.founderCapital)}</b></span>
+          <span>Empresas <b>${this.state.companies.length}</b></span>
+          <span>Nivel liberado <b>${this.state.maxUnlockedLevel}</b></span>
+          <span>Empresa ativa <b>${selected.name}</b></span>
+        </div>
       </header>
-      <section class="month-bar"><div><b>Decisao mensal manual</b><span> Ajuste formulas e estrategias antes de fechar o mes.</span></div><button data-run-month>Passar mes</button></section>
-      <nav class="sector-tabs">
-        ${this.tab('logistics', 'Logistica')}${this.tab('commercial', 'Comercial')}${this.tab('finance', 'Financeiro / Saida')}
-      </nav>
-      <main class="sector-layout"><section class="sector-main">${this.departmentHtml()}</section><aside class="sector-side">${this.execHtml()}</aside></main>
-      <footer class="idle-console">${this.state.lastMessage}</footer>
+
+      <main class="sector-layout portfolio-layout">
+        <section class="sector-main">
+          ${this.portfolioHtml()}
+          ${selected.status === 'player' ? this.operatorHtml(selected) : this.managerHtml(selected)}
+        </section>
+        <aside class="sector-side">${this.executiveHtml(selected)}</aside>
+      </main>
+      <footer class="idle-console">${this.state.message}</footer>
     `;
     this.bind();
   }
 
-  private startHtml(): string {
-    const scale = getNextAffordableScale(this.state.founder);
-    const doorsPrice = getCompanyPurchasePrice('doors_factory', scale);
-    const sawmillPrice = getCompanyPurchasePrice('sawmill', scale);
+  private portfolioHtml(): string {
     return `
-      <main class="start-screen">
-        <p class="eyebrow">Simulador empresarial idle</p>
-        <h1>Compre uma empresa</h1>
-        <p>Objetivo: operar a empresa, construir margem e independencia, contratar gerente geral ou vender a empresa. Depois use o capital para comprar empresas maiores.</p>
+      <div class="section-title">
+        <div><p class="eyebrow">Tela 01</p><h2>Carteira de empresas</h2></div>
+        <p>Comece com uma empresa nivel 1. Para abrir outra, primeiro contrate um manager na empresa atual.</p>
+      </div>
+      <div class="company-grid">
+        ${this.state.companies.map((company) => this.companyCard(company)).join('')}
+      </div>
+    `;
+  }
+
+  private companyCard(company: PortfolioCompany): string {
+    const active = company.id === this.state.selectedCompanyId;
+    return `
+      <button class="company-card ${active ? 'active' : ''}" data-company-id="${company.id}">
+        <strong>${company.name}</strong>
+        <span>${company.status === 'manager' ? 'Com manager' : 'Operada pelo jogador'}</span>
+        <small>Faturamento medio: ${money(company.averageRevenue)}/mes</small>
+        <small>Lucro mes: ${money(company.profitMonth)} | Margem ${(company.marginMonth * 100).toFixed(1)}%</small>
+      </button>
+    `;
+  }
+
+  private operatorHtml(company: PortfolioCompany): string {
+    return `
+      <section class="operator-panel">
+        <div class="section-title">
+          <div><p class="eyebrow">Operacao manual</p><h2>${company.name}</h2></div>
+          <p>Antes de passar o mes, ajuste a politica de estoque. O manager so libera quando lucro mensal > salario e margem >= 7%.</p>
+        </div>
         <div class="finance-grid">
-          <article><span>Capital do fundador</span><b>${this.money(this.state.founder.capital)}</b></article>
-          <article><span>Empresas vendidas</span><b>${this.state.founder.soldCompanies}</b></article>
-          <article><span>Empresas gerenciadas</span><b>${this.state.founder.managedCompanies}</b></article>
-          <article><span>Proximo porte alvo</span><b>${scale}</b></article>
+          <article><span>Faturamento medio</span><b>${money(company.averageRevenue)}</b></article>
+          <article><span>Salario manager</span><b>${money(company.managerSalary)}</b></article>
+          <article><span>Lucro necessario</span><b>${money(company.managerSalary + 1)}</b></article>
+          <article><span>Margem minima</span><b>7.0%</b></article>
         </div>
-        <div class="choice-grid">
-          <button data-company="doors_factory"><b>Fabrica de portas | Porte ${scale}</b><span>Preco: ${this.money(doorsPrice)}. Aluminio, vidro e ferragens.</span></button>
-          <button data-company="sawmill"><b>Madereira | Porte ${scale}</b><span>Preco: ${this.money(sawmillPrice)}. Madeira bruta, cola e verniz.</span></button>
+        <div class="material-grid">${company.materials.map((material, index) => this.materialHtml(material, index, company)).join('')}</div>
+        <div class="strategy-grid exit-grid">
+          <button data-run-month><b>Passar mes</b><span>Fecha o mes manualmente e gera DRE operacional.</span></button>
+          <button data-hire-manager ${canHireManager(company) ? '' : 'disabled'}><b>Contratar manager</b><span>${canHireManager(company) ? 'Requisitos atingidos. Automatizar empresa.' : 'Exige lucro > salario do manager e margem >= 7%.'}</span></button>
         </div>
-        <button data-reset class="reset-start">Resetar carreira</button>
-      </main>
+      </section>
     `;
   }
 
-  private tab(department: Department, label: string): string {
-    return `<button class="${this.state.selectedDepartment === department ? 'active' : ''}" data-tab="${department}">${label}</button>`;
-  }
-
-  private departmentHtml(): string {
-    if (this.state.selectedDepartment === 'commercial') return this.commercialHtml();
-    if (this.state.selectedDepartment === 'finance') return this.financeHtml();
-    return this.logisticsHtml();
-  }
-
-  private logisticsHtml(): string {
-    recalculateIndicators(this.state);
-    return `
-      <div class="section-title"><div><p class="eyebrow">Setor</p><h2>Logistica e estoque</h2></div><p>Use formulas tipo Excel para decidir compras antes de passar o mes.</p></div>
-      <div class="formula-help">Variaveis: <code>ESTOQUE</code>, <code>VAZAO</code>, <code>DEMANDA</code>, <code>CAIXA</code>, <code>CAPITAL</code>, <code>CUSTO</code>, <code>MES</code>, <code>PORTE</code>. Funcoes: <code>SE</code>, <code>MAX</code>, <code>MIN</code>, <code>SOMA</code>.</div>
-      <div class="indicator-builder"><h3>Indicadores</h3>${this.state.indicators.map((indicator) => `<p><b>${indicator.name}</b><span>${this.num(indicator.value)}</span><small>${indicator.formula}</small></p>`).join('')}</div>
-      <div class="material-grid">${this.state.materials.map((material) => this.materialHtml(material)).join('')}</div>
-    `;
-  }
-
-  private materialHtml(material: MaterialState): string {
+  private materialHtml(material: PortfolioMaterial, index: number, company: PortfolioCompany): string {
+    const vars = this.vars(company, material);
+    const shouldBuy = evaluateFormula(material.reorderFormula, vars);
+    const qty = evaluateFormula(material.quantityFormula, vars);
     const coverage = material.monthlyFlow > 0 ? material.stock / material.monthlyFlow : 0;
-    const reorder = evaluateFormula(material.reorderFormula, this.previewVars(material));
-    const qty = evaluateFormula(material.quantityFormula, this.previewVars(material));
     return `
       <article class="material-card">
-        <header><h3>${material.name}</h3><span>${this.num(material.stock)} ${material.unit}</span></header>
-        <p>Vazao media <b>${this.num(material.monthlyFlow)}/mes</b></p>
+        <header><h3>${material.name}</h3><span>${Math.round(material.stock).toLocaleString('pt-BR')} ${material.unit}</span></header>
+        <p>Vazao media <b>${Math.round(material.monthlyFlow).toLocaleString('pt-BR')}/mes</b></p>
         <p>Cobertura <b>${coverage.toFixed(1)} meses</b></p>
-        <p>Compra prevista <b>${reorder.value > 0 ? this.num(Math.max(0, qty.value)) : '0'} ${material.unit}</b></p>
-        <label>Comprar?</label><input data-reorder="${material.key}" value="${this.attr(material.reorderFormula)}" />
-        <label>Quantidade</label><input data-quantity="${material.key}" value="${this.attr(material.quantityFormula)}" />
-        <small>${reorder.error || qty.error || 'Formula ok'}</small>
+        <p>Compra prevista <b>${shouldBuy.value > 0 ? Math.max(0, Math.round(qty.value)).toLocaleString('pt-BR') : '0'} ${material.unit}</b></p>
+        <label>Formula comprar?</label><input data-reorder-index="${index}" value="${this.attr(material.reorderFormula)}" />
+        <label>Formula quantidade</label><input data-qty-index="${index}" value="${this.attr(material.quantityFormula)}" />
+        <small>${shouldBuy.error || qty.error || 'Formula ok'}</small>
       </article>
     `;
   }
 
-  private commercialHtml(): string {
-    const c = this.state.commercial;
+  private managerHtml(company: PortfolioCompany): string {
     return `
-      <div class="section-title"><div><p class="eyebrow">Setor</p><h2>Comercial</h2></div><p>Aumente faturamento sem criar demanda que o estoque nao suporta.</p></div>
-      <div class="strategy-grid">
-        ${this.strategy('hire_seller', 'Contratar vendedor', 'Aumenta capacidade, mas sobe folha.')}
-        ${this.strategy('marketing', 'Marketing', 'Aumenta demanda mensal.')}
-        ${this.strategy('training', 'Treinamento', 'Melhora conversao.')}
-        ${this.strategy('reallocate_sales', 'Realocar equipe', 'Aumenta foco comercial.')}
-      </div>
-      <div class="finance-grid"><article><span>Demanda</span><b>${this.num(c.baseDemand)}</b></article><article><span>Capacidade</span><b>${this.num(c.salesCapacity)}</b></article><article><span>Vendedores</span><b>${c.sellers}</b></article><article><span>Marketing</span><b>${c.marketingLevel}</b></article></div>
+      <section class="operator-panel">
+        <div class="section-title">
+          <div><p class="eyebrow">Operacao automatizada</p><h2>${company.name}</h2></div>
+          <p>Esta empresa esta sob manager. Voce nao opera mais o mes a mes; recebe uma DRE trimestral e distribuicao de caixa.</p>
+        </div>
+        <div class="strategy-grid exit-grid">
+          <button data-run-quarter><b>Receber DRE trimestral</b><span>O manager roda 3 meses de operacao e distribui parte do lucro ao fundador.</span></button>
+          <button data-buy-next><b>Comprar empresa nivel ${this.state.maxUnlockedLevel}</b><span>Custo: ${money(getCompanyPrice(this.state.maxUnlockedLevel))}. So pode ter uma empresa sem manager por vez.</span></button>
+        </div>
+        <div class="dre-table">
+          ${(company.reports.length ? company.reports : []).map((report) => `
+            <p><span>Tri ${report.quarter} | Receita ${money(report.revenue)} | Lucro ${money(report.profit)}</span><b>${(report.margin * 100).toFixed(1)}%</b></p>
+          `).join('') || '<p><span>Nenhuma DRE trimestral recebida ainda.</span><b>-</b></p>'}
+        </div>
+      </section>
     `;
   }
 
-  private strategy(key: CommercialStrategyKey, title: string, description: string): string {
-    return `<button class="strategy-card" data-strategy="${key}"><b>${title}</b><span>${description}</span></button>`;
-  }
-
-  private financeHtml(): string {
-    const f = this.state.financials;
-    const margin = f.revenueMonth > 0 ? (f.resultMonth / f.revenueMonth) * 100 : 0;
-    const valuation = getCompanyValuation(this.state);
+  private executiveHtml(company: PortfolioCompany): string {
+    const managerReady = canHireManager(company);
     return `
-      <div class="section-title"><div><p class="eyebrow">Setor</p><h2>Financeiro e saida</h2></div><p>Escolha o caminho: contratar gerente geral ou vender a empresa.</p></div>
-      <div class="dre-table">
-        ${this.row('Receita', f.revenueMonth)}${this.row('Faturamento perdido', f.lostRevenueMonth)}${this.row('Compras', -f.purchasesMonth)}${this.row('Estoque parado', -f.stockHoldingCostMonth)}${this.row('Comercial', -f.commercialCostMonth)}${this.row('Fixo/Folha', -f.fixedCostMonth)}${this.row('Resultado', f.resultMonth)}
-      </div>
-      <div class="finance-grid"><article><span>Caixa empresa</span><b>${this.money(f.cash)}</b></article><article><span>Margem</span><b>${margin.toFixed(1)}%</b></article><article><span>Valuation estimado</span><b>${this.money(valuation)}</b></article><article><span>Gerente geral</span><b>${this.state.hasGeneralManager ? 'Contratado' : 'Nao'}</b></article></div>
-      <div class="strategy-grid exit-grid"><button data-hire-manager><b>Contratar gerente geral</b><span>Libera o fundador para comprar outra empresa. Exige caixa, lucro e margem.</span></button><button data-sell-company><b>Vender empresa</b><span>Realiza o valuation, aumenta capital do fundador e permite comprar empresa maior.</span></button></div>
+      <h2>Painel executivo</h2>
+      <div class="exec-risk">${company.status === 'manager' ? 'AUTOMATIZADA' : managerReady ? 'MANAGER DISPONIVEL' : 'OPERACAO MANUAL'}</div>
+      <p>Objetivo atual <b>${company.status === 'manager' ? 'Comprar nova empresa' : 'Contratar manager'}</b></p>
+      <p>Faturamento medio <b>${money(company.averageRevenue)}</b></p>
+      <p>Lucro mensal <b>${money(company.profitMonth)}</b></p>
+      <p>Margem <b>${(company.marginMonth * 100).toFixed(1)}%</b></p>
+      <p>Salario manager <b>${money(company.managerSalary)}</b></p>
+      <p>Capital fundador <b>${money(this.state.founderCapital)}</b></p>
+      <p>Proxima empresa <b>${money(getCompanyPrice(this.state.maxUnlockedLevel))}</b></p>
+      <button data-reset>Resetar carteira</button>
     `;
-  }
-
-  private row(label: string, value: number): string {
-    return `<p><span>${label}</span><b class="${value >= 0 ? 'good' : 'bad'}">${this.money(value)}</b></p>`;
-  }
-
-  private execHtml(): string {
-    const f = this.state.financials;
-    const margin = f.revenueMonth > 0 ? f.resultMonth / f.revenueMonth : 0;
-    const managerReady = canHireGeneralManager(this.state);
-    const risk = f.cash < 0 ? 'QUEBROU' : f.cash < 8000 ? 'RISCO ALTO' : f.resultMonth < 0 ? 'ATENCAO' : 'SAUDAVEL';
-    return `<h2>Painel executivo</h2><div class="exec-risk">${risk}</div><p>Objetivo 1 <b>${managerReady ? 'Gerente disponivel' : 'Construir margem'}</b></p><p>Objetivo 2 <b>Vender por ${this.money(getCompanyValuation(this.state))}</b></p><p>Capital fundador <b>${this.money(this.state.founder.capital)}</b></p><p>Caixa empresa <b>${this.money(f.cash)}</b></p><p>Margem mes <b>${(margin * 100).toFixed(1)}%</b></p><p>Empresas vendidas <b>${this.state.founder.soldCompanies}</b></p><p>Ativos gerenciados <b>${this.state.founder.managedCompanies}</b></p><button data-reset>Resetar carreira</button>`;
   }
 
   private bind(): void {
-    this.root.querySelectorAll<HTMLElement>('[data-company]').forEach((el) => el.onclick = () => { this.state = chooseCompany(el.dataset.company as CompanyKind, this.state); this.render(); });
-    this.root.querySelectorAll<HTMLElement>('[data-tab]').forEach((el) => el.onclick = () => { this.state.selectedDepartment = el.dataset.tab as Department; saveBusiness(this.state); this.render(); });
-    this.root.querySelectorAll<HTMLInputElement>('[data-reorder]').forEach((el) => el.onchange = () => { const m = this.state.materials.find((x) => x.key === el.dataset.reorder); if (m) m.reorderFormula = el.value; saveBusiness(this.state); this.render(); });
-    this.root.querySelectorAll<HTMLInputElement>('[data-quantity]').forEach((el) => el.onchange = () => { const m = this.state.materials.find((x) => x.key === el.dataset.quantity); if (m) m.quantityFormula = el.value; saveBusiness(this.state); this.render(); });
-    this.root.querySelectorAll<HTMLElement>('[data-strategy]').forEach((el) => el.onclick = () => { this.state.lastMessage = applyCommercialStrategy(this.state, el.dataset.strategy as CommercialStrategyKey); saveBusiness(this.state); this.render(); });
-    this.root.querySelector<HTMLElement>('[data-run-month]')?.addEventListener('click', () => { const r = runMonth(this.state); this.state.lastMessage = `Mes fechado: ${r.fulfilledUnits}/${r.demandedUnits} pedidos atendidos. Resultado ${this.money(r.result)}.`; this.render(); });
-    this.root.querySelector<HTMLElement>('[data-hire-manager]')?.addEventListener('click', () => { this.state = delegateCompanyToManager(this.state); this.render(); });
-    this.root.querySelector<HTMLElement>('[data-sell-company]')?.addEventListener('click', () => { this.state = sellCompany(this.state); this.render(); });
-    this.root.querySelector<HTMLElement>('[data-reset]')?.addEventListener('click', () => { this.state = resetBusiness(); this.render(); });
+    this.root.querySelectorAll<HTMLElement>('[data-company-id]').forEach((el) => {
+      el.onclick = () => {
+        this.state.selectedCompanyId = el.dataset.companyId ?? this.state.selectedCompanyId;
+        savePortfolio(this.state);
+        this.render();
+      };
+    });
+
+    this.root.querySelector<HTMLElement>('[data-run-month]')?.addEventListener('click', () => {
+      const company = getSelectedCompany(this.state);
+      simulatePlayerMonth(company);
+      this.state.message = `${company.name}: mes fechado. Lucro ${money(company.profitMonth)} | margem ${(company.marginMonth * 100).toFixed(1)}%.`;
+      savePortfolio(this.state);
+      this.render();
+    });
+
+    this.root.querySelector<HTMLElement>('[data-hire-manager]')?.addEventListener('click', () => {
+      hireManager(this.state, getSelectedCompany(this.state));
+      savePortfolio(this.state);
+      this.render();
+    });
+
+    this.root.querySelector<HTMLElement>('[data-run-quarter]')?.addEventListener('click', () => {
+      simulateManagedQuarter(this.state);
+      savePortfolio(this.state);
+      this.render();
+    });
+
+    this.root.querySelector<HTMLElement>('[data-buy-next]')?.addEventListener('click', () => {
+      buyNextCompany(this.state);
+      savePortfolio(this.state);
+      this.render();
+    });
+
+    this.root.querySelectorAll<HTMLInputElement>('[data-reorder-index]').forEach((input) => {
+      input.onchange = () => {
+        const company = getSelectedCompany(this.state);
+        const material = company.materials[Number(input.dataset.reorderIndex)];
+        if (material) material.reorderFormula = input.value;
+        savePortfolio(this.state);
+        this.render();
+      };
+    });
+
+    this.root.querySelectorAll<HTMLInputElement>('[data-qty-index]').forEach((input) => {
+      input.onchange = () => {
+        const company = getSelectedCompany(this.state);
+        const material = company.materials[Number(input.dataset.qtyIndex)];
+        if (material) material.quantityFormula = input.value;
+        savePortfolio(this.state);
+        this.render();
+      };
+    });
+
+    this.root.querySelector<HTMLElement>('[data-reset]')?.addEventListener('click', () => {
+      this.state = resetPortfolio();
+      this.render();
+    });
   }
 
-  private previewVars(material: MaterialState): Record<string, number> {
-    const vars: Record<string, number> = { ESTOQUE: material.stock, VAZAO: material.monthlyFlow, DEMANDA: this.state.commercial.baseDemand, CAIXA: this.state.financials.cash, CAPITAL: this.state.founder.capital, CUSTO: material.unitCost, MES: this.state.month, PORTE: this.state.companyScale };
-    for (const indicator of this.state.indicators) vars[indicator.name] = indicator.value;
-    return vars;
+  private vars(company: PortfolioCompany, material: PortfolioMaterial): Record<string, number> {
+    return {
+      ESTOQUE: material.stock,
+      VAZAO: material.monthlyFlow,
+      FATURAMENTO: company.averageRevenue,
+      CAIXA: company.cash,
+      CUSTO: material.unitCost,
+      MES: company.month,
+      NIVEL: company.level,
+      MARGEM: company.marginMonth
+    };
   }
 
-  private money(value: number): string { return `${value < 0 ? '-R$ ' : 'R$ '}${Math.abs(Math.round(value)).toLocaleString('pt-BR')}`; }
-  private num(value: number): string { return Math.round(value).toLocaleString('pt-BR'); }
-  private attr(value: string): string { return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  private attr(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
 }
