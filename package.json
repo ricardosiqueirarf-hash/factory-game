@@ -1,6 +1,6 @@
 {
   "name": "factory-game",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@types/three": "latest",
     "typescript": "^5.7.2",
     "vite": "^6.0.3"
   }
