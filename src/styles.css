@@ -31,6 +31,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
 .idle-root {
   min-height: 100vh;
   padding: 24px;
@@ -63,21 +68,25 @@ button {
 .choice-grid,
 .strategy-grid,
 .finance-grid,
-.material-grid {
+.material-grid,
+.company-grid {
   display: grid;
   gap: 14px;
 }
 
-.choice-grid {
+.choice-grid,
+.company-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 26px;
 }
 
 .choice-grid button,
+.company-card,
 .strategy-card,
 .sector-tabs button,
 .month-bar button,
-.sector-side button {
+.sector-side button,
+.exit-grid button {
   border: 1px solid rgba(230, 250, 255, 0.16);
   background: linear-gradient(180deg, rgba(24, 43, 70, 0.95), rgba(8, 15, 27, 0.96));
   color: #fff;
@@ -87,22 +96,37 @@ button {
 }
 
 .choice-grid button:hover,
+.company-card:hover,
 .strategy-card:hover,
 .sector-tabs button:hover,
 .month-bar button:hover,
-.sector-side button:hover {
+.sector-side button:hover,
+.exit-grid button:hover {
   border-color: rgba(255,255,255,0.55);
 }
 
+.company-card.active {
+  border-color: rgba(255,255,255,0.88);
+  background: linear-gradient(180deg, rgba(52, 86, 132, 0.98), rgba(11, 24, 43, 0.98));
+}
+
+.company-card strong,
+.company-card span,
+.company-card small,
 .choice-grid b,
 .choice-grid span,
 .strategy-card b,
-.strategy-card span {
+.strategy-card span,
+.exit-grid b,
+.exit-grid span {
   display: block;
 }
 
+.company-card span,
+.company-card small,
 .choice-grid span,
-.strategy-card span {
+.strategy-card span,
+.exit-grid span {
   margin-top: 8px;
   color: #9eb8d3;
   font-size: 13px;
@@ -149,10 +173,17 @@ button {
 
 .month-bar {
   display: grid;
-  grid-template-columns: 1fr 140px;
+  grid-template-columns: 1fr 180px;
   gap: 12px;
   align-items: center;
   margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(230, 250, 255, 0.14);
+  background: rgba(5, 10, 20, 0.58);
+}
+
+.month-bar span {
+  color: #9eb8d3;
 }
 
 .progress {
@@ -308,6 +339,10 @@ code {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.exit-grid {
+  margin-top: 16px;
+}
+
 .finance-grid article {
   padding: 16px;
 }
@@ -357,6 +392,7 @@ code {
 @media (max-width: 980px) {
   .sector-layout,
   .choice-grid,
+  .company-grid,
   .material-grid,
   .strategy-grid,
   .finance-grid {
