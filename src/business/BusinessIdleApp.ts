@@ -1,5 +1,6 @@
 import { BusinessStateData, CommercialStrategyKey, CompanyKind, Department, MaterialState } from './businessTypes';
-import { applyCommercialStrategy, canHireGeneralManager, chooseCompany, getCompanyName, getCompanyPurchasePrice, getCompanyValuation, getNextAffordableScale, hireGeneralManager, loadBusiness, recalculateIndicators, resetBusiness, runMonth, saveBusiness, sellCompany } from './businessLogic';
+import { applyCommercialStrategy, canHireGeneralManager, chooseCompany, getCompanyName, getCompanyPurchasePrice, getCompanyValuation, getNextAffordableScale, loadBusiness, recalculateIndicators, resetBusiness, runMonth, saveBusiness, sellCompany } from './businessLogic';
+import { delegateCompanyToManager } from './exitLogic';
 import { evaluateFormula } from './formulaEngine';
 
 export class BusinessIdleApp {
@@ -121,7 +122,7 @@ export class BusinessIdleApp {
         ${this.row('Receita', f.revenueMonth)}${this.row('Faturamento perdido', f.lostRevenueMonth)}${this.row('Compras', -f.purchasesMonth)}${this.row('Estoque parado', -f.stockHoldingCostMonth)}${this.row('Comercial', -f.commercialCostMonth)}${this.row('Fixo/Folha', -f.fixedCostMonth)}${this.row('Resultado', f.resultMonth)}
       </div>
       <div class="finance-grid"><article><span>Caixa empresa</span><b>${this.money(f.cash)}</b></article><article><span>Margem</span><b>${margin.toFixed(1)}%</b></article><article><span>Valuation estimado</span><b>${this.money(valuation)}</b></article><article><span>Gerente geral</span><b>${this.state.hasGeneralManager ? 'Contratado' : 'Nao'}</b></article></div>
-      <div class="strategy-grid exit-grid"><button data-hire-manager><b>Contratar gerente geral</b><span>Libera parte do caixa para o fundador e transforma a empresa em ativo gerenciado. Exige caixa, lucro e margem.</span></button><button data-sell-company><b>Vender empresa</b><span>Realiza o valuation, aumenta capital do fundador e permite comprar empresa maior.</span></button></div>
+      <div class="strategy-grid exit-grid"><button data-hire-manager><b>Contratar gerente geral</b><span>Libera o fundador para comprar outra empresa. Exige caixa, lucro e margem.</span></button><button data-sell-company><b>Vender empresa</b><span>Realiza o valuation, aumenta capital do fundador e permite comprar empresa maior.</span></button></div>
     `;
   }
 
@@ -144,7 +145,7 @@ export class BusinessIdleApp {
     this.root.querySelectorAll<HTMLInputElement>('[data-quantity]').forEach((el) => el.onchange = () => { const m = this.state.materials.find((x) => x.key === el.dataset.quantity); if (m) m.quantityFormula = el.value; saveBusiness(this.state); this.render(); });
     this.root.querySelectorAll<HTMLElement>('[data-strategy]').forEach((el) => el.onclick = () => { this.state.lastMessage = applyCommercialStrategy(this.state, el.dataset.strategy as CommercialStrategyKey); saveBusiness(this.state); this.render(); });
     this.root.querySelector<HTMLElement>('[data-run-month]')?.addEventListener('click', () => { const r = runMonth(this.state); this.state.lastMessage = `Mes fechado: ${r.fulfilledUnits}/${r.demandedUnits} pedidos atendidos. Resultado ${this.money(r.result)}.`; this.render(); });
-    this.root.querySelector<HTMLElement>('[data-hire-manager]')?.addEventListener('click', () => { this.state.lastMessage = hireGeneralManager(this.state); this.render(); });
+    this.root.querySelector<HTMLElement>('[data-hire-manager]')?.addEventListener('click', () => { this.state = delegateCompanyToManager(this.state); this.render(); });
     this.root.querySelector<HTMLElement>('[data-sell-company]')?.addEventListener('click', () => { this.state = sellCompany(this.state); this.render(); });
     this.root.querySelector<HTMLElement>('[data-reset]')?.addEventListener('click', () => { this.state = resetBusiness(); this.render(); });
   }
