@@ -1,5 +1,6 @@
 import { MACHINE_CATALOG, getMachineSpeedMultiplier } from '../data/catalog';
 import { GameState } from '../state/GameState';
+import { accrueOperatingCosts } from './FinanceSimulator';
 
 export interface ProductionEvent {
   machineId: string;
@@ -11,6 +12,8 @@ export class FactorySimulator {
 
   tick(deltaSeconds: number): ProductionEvent[] {
     const events: ProductionEvent[] = [];
+
+    accrueOperatingCosts(this.state, deltaSeconds);
 
     for (const machine of this.state.data.machines) {
       const definition = MACHINE_CATALOG[machine.type];
