@@ -1,16 +1,29 @@
 # Factory Game
 
-Jogo web tycoon industrial feito com Phaser, TypeScript e Vite.
+Jogo web tycoon de holding empresarial/industrial feito com TypeScript e Vite.
 
-## Objetivo
+Este projeto e separado do ANODIZA, ColorGlass ou qualquer sistema empresarial real.
 
-Criar um jogo de navegador onde o jogador monta uma fabrica, compra insumos, produz itens, vende estoque e reinveste em maquinas melhores.
+## Conceito
+
+O jogador compra empresas problemáticas ou descontadas, melhora a operação, contrata managers, aumenta lucro e decide se vende a empresa valorizada ou mantém como ativo gerador de caixa.
+
+## Loop principal
+
+1. Acessar o mercado de empresas.
+2. Comprar empresas com capital disponível.
+3. Aplicar upgrades para aumentar receita, qualidade, demanda, eficiência ou reduzir custos/risco.
+4. Contratar e atribuir managers.
+5. Passar o mês manualmente.
+6. Receber lucro/prejuízo, pagar managers e lidar com eventos.
+7. Vender empresas valorizadas ou manter ativos lucrativos.
+8. Aumentar capital, lucro mensal e valor total da holding.
 
 ## Stack
 
-- Phaser 3
 - TypeScript
 - Vite
+- localStorage para persistência local
 - Render Static Site
 
 ## Rodar localmente
@@ -40,45 +53,33 @@ dist/
 
 ## Deploy no Render
 
-O arquivo `render.yaml` ja esta configurado.
-
-No Render:
-
-1. New
-2. Blueprint
-3. Selecione o repositorio `factory-game`
-4. Branch `main`
-5. Apply
-
-Alternativa manual como Static Site:
-
 - Build Command: `npm install && npm run build`
 - Publish Directory: `dist`
 
 ## Gameplay atual
 
-- Compra de metal bruto
-- Grid de fabrica
-- Construir maquinas
-- Producao automatica
-- Venda de estoque
-- Upgrades com Shift + clique
-- Desbloqueio de maquinas por dinheiro
-- Save automatico no navegador
+- Dashboard da holding
+- Mercado de empresas à venda
+- Compra de empresas
+- Portfólio de empresas compradas
+- Venda por valuation
+- Upgrades por empresa
+- Managers com tipo, raridade, salário e bônus
+- Atribuição de manager a empresa
+- Passagem manual do mês
+- Eventos aleatórios
+- Histórico de decisões e eventos
+- Persistência local com `localStorage`
 
-## Controles
+## Modelos principais
 
-- Clique em uma maquina no painel para selecionar construcao
-- Clique em um espaco vazio do grid para construir
-- Clique em uma maquina no grid para ver upgrade
-- Shift + clique em uma maquina para fazer upgrade
+Arquivos principais:
 
-## Proximas features
+- `src/business/holdingTypes.ts`
+- `src/business/holdingLogic.ts`
+- `src/business/BusinessIdleApp.ts`
+- `src/business/holding.css`
 
-- Contratos com prazo
-- Esteiras visuais
-- Funcionarios
-- Pesquisa tecnologica
-- Sistema de energia
-- Ranking online
-- Backend para save na nuvem
+## Observação
+
+Alguns arquivos legados do protótipo 3D/fábrica ainda existem no repositório, mas o entrypoint atual do jogo usa o MVP de holding empresarial.
