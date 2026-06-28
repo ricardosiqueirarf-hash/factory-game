@@ -1,0 +1,134 @@
+.company-card {
+  position: relative;
+  border: 1px solid rgba(230, 250, 255, 0.13);
+  background: linear-gradient(180deg, rgba(12, 24, 42, 0.94), rgba(4, 9, 18, 0.92));
+  color: #eef7ff;
+  padding: 16px;
+  text-align: left;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.09), 0 18px 40px rgba(0,0,0,0.28);
+}
+
+.company-card.rare {
+  border-color: rgba(250, 240, 180, 0.72);
+  box-shadow: 0 0 32px rgba(250, 240, 180, 0.12), inset 0 1px 0 rgba(255,255,255,0.14);
+}
+
+.company-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.company-card h3 {
+  margin: 0;
+  color: #fff;
+}
+
+.company-card p {
+  color: #aec4dc;
+  line-height: 1.4;
+}
+
+.company-card button,
+.upgrade-list button {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid rgba(230, 250, 255, 0.16);
+  background: linear-gradient(180deg, rgba(30, 56, 88, 0.96), rgba(9, 18, 32, 0.96));
+  color: #fff;
+  padding: 12px;
+  text-align: left;
+  font-weight: 800;
+}
+
+.company-card button:hover,
+.upgrade-list button:hover {
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.company-card button:disabled,
+.upgrade-list button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.mini-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.mini-metrics p {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.045);
+  font-size: 12px;
+}
+
+.mini-metrics b {
+  color: #fff;
+}
+
+.card-actions {
+  margin-top: 12px;
+}
+
+.upgrade-list {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.upgrade-list h4 {
+  margin: 0 0 8px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 12px;
+}
+
+.upgrade-list span {
+  display: block;
+  margin-top: 5px;
+  color: #9eb8d3;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.manager-card .eyebrow {
+  color: #f7d98c;
+}
+
+.history-list p span {
+  display: grid;
+  gap: 4px;
+}
+
+.history-list small {
+  color: #9eb8d3;
+}
+
+.neutral {
+  color: #dbeafe !important;
+}
+
+.good {
+  color: #86efac !important;
+}
+
+.bad {
+  color: #fb7185 !important;
+}
+
+@media (max-width: 760px) {
+  .mini-metrics {
+    grid-template-columns: 1fr;
+  }
+}
