@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#08130f" />
+  <title>Racha Analytics — Conselho Supremo</title>
+  <meta name="description" content="Modelo estatístico totalmente sério para um problema absolutamente sério: escalar o racha de sexta." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="noise"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">R</div>
+      <div>
+        <strong>RACHA ANALYTICS</strong>
+        <span>KADU-π EQUILIBRIUM ENGINE</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="live-dot"><i></i> MODELO ONLINE</span>
+      <a href="#metodologia" class="ghost-link">Metodologia</a>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">COMITÊ TÉCNICO · RACHA DE SEXTA</div>
+        <h1>Governança baseada em dados.<br><span>Resenha baseada em achismo.</span></h1>
+        <p>
+          Um motor quantitativo de altíssima sofisticação para responder a única pergunta que realmente importa:
+          <strong>esses times estão roubados?</strong>
+        </p>
+        <div class="hero-badges">
+          <span>18 atletas</span>
+          <span>3 equipes</span>
+          <span>25.000 simulações</span>
+          <span>0 artigos revisados por pares</span>
+        </div>
+      </div>
+
+      <aside class="decision-card" id="decisionCard">
+        <div class="decision-label">PARECER PRELIMINAR</div>
+        <div class="decision-status" id="decisionStatus">CALCULANDO</div>
+        <p id="decisionNote">Submetendo a escalação ao algoritmo soberano.</p>
+        <div class="decision-foot">
+          <span>Confiança institucional</span>
+          <strong id="decisionConfidence">—</strong>
+        </div>
+      </aside>
+    </section>
+
+    <section class="control-panel">
+      <div>
+        <div class="section-kicker">CENÁRIOS</div>
+        <h2>Premissas do modelo</h2>
+        <p>Altere as variáveis sensíveis e observe a ciência se adaptar à narrativa.</p>
+      </div>
+
+      <div class="controls">
+        <label class="toggle-row">
+          <div>
+            <strong>Kaiky joga antes</strong>
+            <small>Ativar Coeficiente de Depreciação Física Pré-Racha</small>
+          </div>
+          <input id="kaikyFatigue" type="checkbox" checked />
+          <span class="toggle"></span>
+        </label>
+
+        <div class="select-row">
+          <div>
+            <strong>Classificação operacional do PA</strong>
+            <small>Ativo de risco sistêmico do elenco</small>
+          </div>
+          <select id="paMode">
+            <option value="p4" selected>Pote 4 — cenário conservador</option>
+            <option value="p3">Pote 3 — cenário moderado</option>
+            <option value="p2">Pote 2 — evento de cauda</option>
+          </select>
+        </div>
+
+        <button id="simulateButton" class="primary-button">
+          <span>RODAR O MODELO</span>
+          <b>↻</b>
+        </button>
+      </div>
+    </section>
+
+    <section class="metrics-grid" aria-label="Métricas do equilíbrio">
+      <article class="metric-card spotlight">
+        <span>ÍNDICE DE EQUILÍBRIO</span>
+        <strong id="balanceIndex">—</strong>
+        <small>Quanto maior, menos desculpa pós-jogo.</small>
+      </article>
+      <article class="metric-card">
+        <span>DISPERSÃO ENTRE TIMES</span>
+        <strong id="spread">—</strong>
+        <small>Diferença entre maior e menor força.</small>
+      </article>
+      <article class="metric-card">
+        <span>DESVIO PADRÃO</span>
+        <strong id="stdDev">—</strong>
+        <small>Formalidade estatística obrigatória.</small>
+      </article>
+      <article class="metric-card danger-soft">
+        <span>ÍNDICE DE POLÊMICA</span>
+        <strong id="controversyIndex">—</strong>
+        <small>Probabilidade de alguém reclamar no grupo.</small>
+      </article>
+    </section>
+
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">ESCALAÇÃO HOMOLOGADA</div>
+          <h2>Os três blocos competitivos</h2>
+        </div>
+        <div class="constraint-pill">⛔ HARD CONSTRAINT: FELIPE ≠ LEVI</div>
+      </div>
+      <div class="teams-grid" id="teamsGrid"></div>
+    </section>
+
+    <section class="analysis-grid">
+      <article class="panel probability-panel">
+        <div class="panel-title-row">
+          <div>
+            <div class="section-kicker">MONTE CARLO</div>
+            <h2>Probabilidade de terminar em 1º</h2>
+          </div>
+          <div class="simulation-chip"><span id="simulationCount">—</span> execuções</div>
+        </div>
+        <div id="probabilityBars" class="probability-bars"></div>
+        <p class="microcopy">Cada simulação sorteia uma performance coletiva com ruído gaussiano. Em português: o algoritmo também considera a possibilidade de alguém simplesmente jogar mal.</p>
+      </article>
+
+      <article class="panel ranking-panel">
+        <div class="section-kicker">POWER RANKING</div>
+        <h2>Ranking do algoritmo</h2>
+        <div id="rankingList" class="ranking-list"></div>
+        <div class="model-verdict">
+          <span>Leitura institucional</span>
+          <p id="institutionalReading">Calculando risco de choradeira...</p>
+        </div>
+      </article>
+    </section>
+
+    <section id="metodologia" class="method-section">
+      <div class="section-heading">
+        <div>
+          <div class="section-kicker">WHITEPAPER DE 43 SEGUNDOS</div>
+          <h2>Como a máquina “pensa”</h2>
+        </div>
+        <span class="fake-peer-review">NÃO REVISADO POR NINGUÉM</span>
+      </div>
+
+      <div class="method-grid">
+        <article>
+          <span class="method-number">01</span>
+          <h3>Rating-base</h3>
+          <p>Cada jogador recebe uma nota inicial totalmente defensável até alguém perguntar de onde ela veio.</p>
+        </article>
+        <article>
+          <span class="method-number">02</span>
+          <h3>Ajuste contextual</h3>
+          <p>Fadiga, química e classificação do PA alteram o valor esperado de contribuição marginal.</p>
+        </article>
+        <article>
+          <span class="method-number">03</span>
+          <h3>Simulação</h3>
+          <p>Milhares de cenários adicionam variância para representar o caráter profundamente caótico do racha.</p>
+        </article>
+        <article>
+          <span class="method-number">04</span>
+          <h3>Homologação</h3>
+          <p>Se a dispersão for baixa o algoritmo aprova. Se alguém discordar, abre-se a CPI do Racha.</p>
+        </article>
+      </div>
+
+      <div class="formula-box">
+        <span>FUNÇÃO DE FORÇA</span>
+        <code>Fᵢ = μ(rating contextual) + química + ε</code>
+        <p>onde ε representa fatores imponderáveis: sono, ressaca, canela, ego, chute de bico e intervenção divina.</p>
+      </div>
+    </section>
+
+    <section class="governance">
+      <div>
+        <div class="section-kicker">GOVERNANÇA</div>
+        <h2>Conselho Supremo do Racha</h2>
+        <p>O algoritmo oferece evidência. O CEO Felipe oferece veto. A democracia termina exatamente onde começa a escalação.</p>
+      </div>
+      <div class="vote-strip">
+        <div><span>👍</span><strong>APROVAR</strong><small>Confia na ciência</small></div>
+        <div><span>✌️</span><strong>EMENDAR</strong><small>Tem uma contraproposta</small></div>
+        <div><span>🖕</span><strong>REJEITAR</strong><small>Abre CPI imediatamente</small></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      <strong>RACHA ANALYTICS</strong>
+      <span>Decision Intelligence for Questionable Institutions™</span>
+    </div>
+    <p>Este sistema é uma piada. Qualquer semelhança com ciência de verdade é mera coincidência estatisticamente insignificante.</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
