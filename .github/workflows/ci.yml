@@ -1,0 +1,41 @@
+name: Racha Analytics CI
+
+on:
+  push:
+    branches: [racha-analytics]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check server.js
+          node --check public/app.js
+
+      - name: Boot server and test API
+        run: |
+          node server.js > /tmp/racha-analytics.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID' EXIT
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:3000/health; then
+              break
+            fi
+            sleep 0.5
+          done
+          curl -fsS http://127.0.0.1:3000/api/simulate > /tmp/simulation.json
+          node -e "const d=require('/tmp/simulation.json'); if(!d.teams || d.teams.length!==3) process.exit(1); console.log(d.decision, d.ranking)"
